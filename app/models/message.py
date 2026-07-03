@@ -18,6 +18,6 @@ class Message(Base):
     message_type = Column(String(50), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    status = Column(String(50), nullable=False, default="sent")
+    status = Column(Integer, nullable=False, default=1)
 
-    # conversation = relationship("Conversation", back_populates="messages")
+    conversation = relationship("Conversation", back_populates="messages")
