@@ -1,212 +1,103 @@
-
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from typing import Optional, List, Tuple
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.message import Message
-from app.schemas.message import (
-    MessageCreate,
-    MessageUpdate
-)
+from app.schemas.message import MessageCreate, MessageUpdate
+
+async def get_message(db: AsyncSession, message_id: int) -> Message | None:
+    result = await db.execute(select(Message).where(Message.id == message_id))
+    return result.scalar_one_or_none()
 
 
-# =========================
-# GET BY UNIQUE KEY
-# =========================
-async def get_message(
-    db: AsyncSession,
-    conversation_id: int,
-    external_message_id: Optional[str] = None,
-    message_id: Optional[int] = None,
-) -> Optional[Message]:
-    try:
-        query = select(Message).where(
-            Message.conversation_id == conversation_id
-        )
-
-        if message_id:
-            query = query.where(Message.id == message_id)
-
-        if external_message_id:
-            query = query.where(
-                Message.external_message_id == external_message_id
-            )
-
-        result = await db.execute(query)
-        return result.scalars().first()
-
-    except SQLAlchemyError as e:
-        raise RuntimeError(f"Database error: {str(e)}")
-
-
-# =========================
-# UPSERT
-# =========================
-async def upsert_message(
-    db: AsyncSession,
-    data: MessageCreate
-) -> Message:
-    try:
-        msg = None
-
-        if data.external_message_id:
-            msg = await get_message(
-                db,
-                conversation_id=data.conversation_id,
-                external_message_id=data.external_message_id,
-            )
-
-        # create
-        if not msg:
-            msg = Message(**data.model_dump())
-            db.add(msg)
-            await db.commit()
-            await db.refresh(msg)
-            return msg
-
-        # update nhẹ nếu cần
-        updated = False
-
-        if data.status and data.status != msg.status:
-            msg.status = data.status
-            updated = True
-
-        if data.content and data.content != msg.content:
-            msg.content = data.content
-            updated = True
-
-        if updated:
-            await db.commit()
-            await db.refresh(msg)
-
-        return msg
-
-    except IntegrityError:
-        await db.rollback()
-        # race condition → retry
-        return await get_message(
-            db,
-            conversation_id=data.conversation_id,
-            external_message_id=data.external_message_id,
-        )
-
-    except SQLAlchemyError as e:
-        await db.rollback()
-        raise RuntimeError(f"Database error: {str(e)}")
-
-
-# =========================
-# UPDATE
-# =========================
 async def update_message(
-    db: AsyncSession,
-    message_id: int,
-    conversation_id: int,
-    data: MessageUpdate
-) -> Message:
-    try:
-        result = await db.execute(
-            select(Message).where(
-                Message.id == message_id,
-                Message.conversation_id == conversation_id
-            )
+    db: AsyncSession, message_id: int, data: MessageUpdate
+) -> Message | None:
+    msg = await get_message(db, message_id)
+    if not msg:
+        return None
+
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(msg, field, value)
+
+    await db.commit()
+    await db.refresh(msg)
+    return msg
+
+
+async def delete_message(db: AsyncSession, message_id: int) -> bool:
+    msg = await get_message(db, message_id)
+    if not msg:
+        return False
+    await db.delete(msg)
+    await db.commit()
+    return True
+
+async def get_message_by_external_id(
+    db: AsyncSession, conversation_id: int, external_message_id: str
+) -> Message | None:
+    result = await db.execute(
+        select(Message).where(
+            Message.conversation_id == conversation_id,
+            Message.external_message_id == external_message_id,
         )
-        msg = result.scalars().first()
+    )
+    return result.scalar_one_or_none()
 
-        if not msg:
-            raise ValueError("Message not found")
 
-        for field, value in data.model_dump(exclude_unset=True).items():
-            setattr(msg, field, value)
+async def upsert_message(db: AsyncSession, data: MessageCreate) -> Message:
+    """
+    Nếu external_message_id đã tồn tại trong cùng conversation -> update content/status.
+    Nếu chưa -> tạo mới. Nếu external_message_id là None -> luôn tạo mới.
+    """
+    existing = None
+    if data.external_message_id:
+        existing = await get_message_by_external_id(
+            db, data.conversation_id, data.external_message_id
+        )
 
+    if existing:
+        existing.content = data.content
+        existing.status = data.status
         await db.commit()
-        await db.refresh(msg)
-        return msg
+        await db.refresh(existing)
+        return existing
 
-    except ValueError:
-        await db.rollback()
-        raise
+    msg = Message(
+        conversation_id=data.conversation_id,
+        external_message_id=data.external_message_id,
+        sender_type=data.sender_type,
+        sender_id=data.sender_id,
+        message_type=data.message_type,
+        content=data.content,
+        status=data.status,
+    )
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return msg
 
-    except IntegrityError:
-        await db.rollback()
-        raise ValueError("Update conflict")
 
-    except SQLAlchemyError as e:
-        await db.rollback()
-        raise RuntimeError(f"Database error: {str(e)}")
-
-
-# =========================
-# LIST
-# =========================
 async def list_messages(
-    db: AsyncSession,
-    conversation_id: int,
-    sender_type: Optional[str] = None,
-    limit: int = 50,
-    offset: int = 0
-) -> Tuple[int, List[Message]]:
-    try:
-        base_query = select(Message).where(
+    db: AsyncSession, conversation_id: int, limit: int = 20, offset: int = 0
+) -> tuple[int, list[Message]]:
+    """
+    Trả về (total, messages) — messages sắp xếp mới nhất trước (DESC).
+    Caller cần tự đảo ngược nếu muốn thứ tự cũ -> mới (ví dụ khi build prompt cho LLM).
+    """
+    count_result = await db.execute(
+        select(func.count()).select_from(Message).where(
             Message.conversation_id == conversation_id
         )
+    )
+    total = count_result.scalar_one()
 
-        if sender_type:
-            base_query = base_query.where(
-                Message.sender_type == sender_type
-            )
-
-        count_query = select(func.count()).select_from(Message).where(
-            Message.conversation_id == conversation_id
-        )
-
-        if sender_type:
-            count_query = count_query.where(
-                Message.sender_type == sender_type
-            )
-
-        total = (await db.execute(count_query)).scalar()
-
-        query = base_query.order_by(Message.created_at.asc())
-        query = query.limit(limit).offset(offset)
-
-        result = await db.execute(query)
-
-        return total, result.scalars().all()
-
-    except SQLAlchemyError as e:
-        raise RuntimeError(f"Database error: {str(e)}")
-
-
-# =========================
-# DELETE
-# =========================
-async def delete_message(
-    db: AsyncSession,
-    message_id: int,
-    conversation_id: int,
-) -> bool:
-    try:
-        result = await db.execute(
-            select(Message).where(
-                Message.id == message_id,
-                Message.conversation_id == conversation_id
-            )
-        )
-        msg = result.scalars().first()
-
-        if not msg:
-            raise ValueError("Message not found")
-
-        await db.delete(msg)
-        await db.commit()
-        return True
-
-    except ValueError:
-        await db.rollback()
-        raise
-
-    except SQLAlchemyError as e:
-        await db.rollback()
-        raise RuntimeError(f"Database error: {str(e)}")
+    result = await db.execute(
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(Message.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items = result.scalars().all()
+    return total, items

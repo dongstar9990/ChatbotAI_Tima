@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
 
 from app.core.db import get_db
 from app.schemas.conversation import (
@@ -10,80 +9,60 @@ from app.schemas.conversation import (
     ConversationListResponse,
 )
 from app.services.conversation_services import (
-    upsert_conversation,
     get_conversation,
+    upsert_conversation,
     update_conversation,
-    list_conversations,
     delete_conversation,
+    list_conversations,
 )
 
-router = APIRouter(prefix="/conversations", tags=["Conversations"])
+router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 
-@router.post("", response_model=ConversationRead, status_code=201)
+@router.post("/", response_model=ConversationRead)
 async def create_conversation(
-    payload: ConversationCreate,
-    db: AsyncSession = Depends(get_db),
+    data: ConversationCreate, db: AsyncSession = Depends(get_db)
 ):
-    try:
-        return await upsert_conversation(db, payload)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return await upsert_conversation(db, data)
 
 
-@router.get("", response_model=ConversationListResponse)
-async def get_conversations(
-    status: Optional[str] = None,
-    limit: int = Query(50, ge=1, le=200),
+@router.get("/", response_model=ConversationListResponse)
+async def list_conversations_route(
+    limit: int = Query(20, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
-    try:
-        total, items = await list_conversations(
-            db, status=status, limit=limit, offset=offset
-        )
-        return ConversationListResponse(total=total, items=items)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    total, items = await list_conversations(db, limit=limit, offset=offset)
+    return ConversationListResponse(total=total, items=items)
 
 
 @router.get("/{conversation_id}", response_model=ConversationRead)
-async def get_conversation_detail(
-    conversation_id: int,
-    db: AsyncSession = Depends(get_db),
+async def get_conversation_route(
+    conversation_id: int, db: AsyncSession = Depends(get_db)
 ):
-    try:
-        convo = await get_conversation(db, conversation_id=conversation_id)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+    convo = await get_conversation(db, conversation_id)
     if not convo:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return convo
 
 
 @router.patch("/{conversation_id}", response_model=ConversationRead)
-async def patch_conversation(
+async def update_conversation_route(
     conversation_id: int,
-    payload: ConversationUpdate,
+    data: ConversationUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    try:
-        return await update_conversation(db, conversation_id, payload)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    convo = await update_conversation(db, conversation_id, data)
+    if not convo:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return convo
 
 
-@router.delete("/{conversation_id}", status_code=204)
-async def remove_conversation(
-    conversation_id: int,
-    db: AsyncSession = Depends(get_db),
+@router.delete("/{conversation_id}")
+async def delete_conversation_route(
+    conversation_id: int, db: AsyncSession = Depends(get_db)
 ):
-    try:
-        await delete_conversation(db, conversation_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    deleted = await delete_conversation(db, conversation_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return {"detail": "Deleted successfully"}

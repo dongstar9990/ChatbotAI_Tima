@@ -1,37 +1,54 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.schemas.chatbot import ChatRequest, ChatResponse
-from app.services.chatbot import handle_user_message
+from app.schemas.chatbot import ChatMessageRequest, ChatMessageResponse
+from app.services.chatbot_services import handle_user_message
+from app.services.message_services import list_messages
 
-router = APIRouter(prefix="/chatbot", tags=["Chatbot"])
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-@router.post("/send", response_model=ChatResponse)
-async def send_message(
-    payload: ChatRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    try:
-        convo, user_msg, bot_msg, reply = await handle_user_message(
-            db,
-            conversation_id=payload.conversation_id,
-            external_conversation_id=payload.external_conversation_id,
-            sender_id=payload.sender_id,
-            content=payload.content,
+@router.post("/", response_model=ChatMessageResponse)
+async def chat(req: ChatMessageRequest, db: AsyncSession = Depends(get_db)):
+    if not req.conversation_id and not req.external_conversation_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Cần cung cấp conversation_id hoặc external_conversation_id",
         )
+
+    try:
+        convo, user_msg, bot_msg, reply_text = await handle_user_message(
+            db,
+            conversation_id=req.conversation_id,
+            external_conversation_id=req.external_conversation_id,
+            sender_id=req.sender_id,
+            content=req.content,
+            external_message_id=req.external_message_id,
+        )
+
+        _, history = await list_messages(db, conversation_id=convo.id, limit=100, offset=0)
+        history = list(reversed(history))
+
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        # lỗi gọi OpenAI (rate limit, timeout, sai key...)
-        raise HTTPException(status_code=502, detail=f"LLM error: {str(e)}")
+        logger.exception("Lỗi xử lý chat message")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-    return ChatResponse(
+    return ChatMessageResponse(
         conversation_id=convo.id,
-        user_message_id=user_msg.id,
-        bot_message_id=bot_msg.id,
-        reply=reply,
+        reply=reply_text,
+        messages=[
+            {
+                "sender_type": m.sender_type,
+                "content": m.content,
+                "created_at": m.created_at.isoformat(),
+            }
+            for m in history
+        ],
     )
