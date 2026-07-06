@@ -140,6 +140,7 @@ SYSTEM_PROMPT = (
         KẾT THÚC:
         Nếu khách nhắn "ok/cảm ơn/được" sau khi đã đủ thông tin →
         "Dạ em cảm ơn anh chị, hẹn gặp lại ạ."
+        
         """
 )
 

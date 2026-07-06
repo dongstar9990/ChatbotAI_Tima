@@ -43,12 +43,12 @@ async def chat(req: ChatMessageRequest, db: AsyncSession = Depends(get_db)):
     return ChatMessageResponse(
         conversation_id=convo.id,
         reply=reply_text,
-        messages=[
-            {
-                "sender_type": m.sender_type,
-                "content": m.content,
-                "created_at": m.created_at.isoformat(),
-            }
-            for m in history
-        ],
+        # messages=[
+        #     {
+        #         "sender_type": m.sender_type,
+        #         "content": m.content,
+        #         "created_at": m.created_at.isoformat(),
+        #     }
+        #     for m in history
+        # ],
     )
