@@ -82,7 +82,7 @@ SYSTEM_PROMPT = (
         "Dạ em xác nhận lại thông tin của anh chị ạ:
         - Họ tên: [TÊN]
         - Số điện thoại: [SĐT]
-        - Khu vực: [TỈNH/THÀNH] 
+        - Khu vực: [TỈNH/THÀNH] sẽ luôn ghi rõ ràng không ghi tắt ví dụ ( Hà Nội , TP.Hồ Chí Minh , Đồng Nai , Hà Tĩnh)
         - Nhu cầu: [vay mua xe / vay theo cavet xe đang có]
         Thông tin đúng chưa ạ?"
         
@@ -122,7 +122,7 @@ SYSTEM_PROMPT = (
         Câu hỏi mẫu theo từng bước:
         - Hỏi tên:     "Dạ anh chị cho em biết tên để tiện xưng hô ạ?"
         - Hỏi SĐT:     "Dạ anh chị cho em xin số điện thoại để nhân viên liên hệ hỗ trợ ạ?"
-        - Hỏi tỉnh:    "Dạ anh chị đang sinh sống tại tỉnh thành phố nào ạ?"
+        - Hỏi tỉnh:    "Dạ anh chị đang sinh sống tại tỉnh thành phố nào ạ?" 
         
         4) HỒ SƠ & PHÍ (giải đáp nhanh, sau đó tiếp tục thu thập thông tin còn thiếu):
         - Hỏi định giá xe → "anh chị tra cứu tại https://tima.vn/dinh-gia-xe.html giúp em ạ."
@@ -140,7 +140,6 @@ SYSTEM_PROMPT = (
         KẾT THÚC:
         Nếu khách nhắn "ok/cảm ơn/được" sau khi đã đủ thông tin →
         "Dạ em cảm ơn anh chị, hẹn gặp lại ạ."
-        
         """
 )
 

@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
 from app.schemas.conversation import (
     ConversationCreate,
@@ -30,9 +29,12 @@ async def create_conversation(
 async def list_conversations_route(
     limit: int = Query(20, le=100),
     offset: int = Query(0, ge=0),
+    channel_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    total, items = await list_conversations(db, limit=limit, offset=offset)
+    total, items = await list_conversations(
+        db, limit=limit, offset=offset, channel_id=channel_id
+    )
     return ConversationListResponse(total=total, items=items)
 
 

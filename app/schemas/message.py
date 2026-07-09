@@ -7,7 +7,7 @@ class MessageBase(BaseModel):
     conversation_id: int
     external_message_id: Optional[str] = Field(None, max_length=255)
     sender_type: str = Field(..., max_length=50)   # customer / agent / bot
-    sender_id: int
+    sender_id: str = Field(..., max_length=50)
     message_type: str = Field(..., max_length=50)  # text / image / file
     content: str
     status: Optional[int] = 1
@@ -33,3 +33,8 @@ class MessageRead(MessageBase):
 class MessageListResponse(BaseModel):
     total: int
     items: list[MessageRead]
+
+class SendMessageRequest(BaseModel):
+    conversation_id: int
+    content: str
+    sender_id: Optional[str] = Field(None, max_length=50)

@@ -79,22 +79,28 @@ async def upsert_message(db: AsyncSession, data: MessageCreate) -> Message:
 
 
 async def list_messages(
-    db: AsyncSession, conversation_id: int, limit: int = 20, offset: int = 0
+    db: AsyncSession,
+    conversation_id: int,
+    limit: int = 20,
+    offset: int = 0,
+    sender_type: str | None = None,
 ) -> tuple[int, list[Message]]:
     """
     Trả về (total, messages) — messages sắp xếp mới nhất trước (DESC).
     Caller cần tự đảo ngược nếu muốn thứ tự cũ -> mới (ví dụ khi build prompt cho LLM).
     """
+    filters = [Message.conversation_id == conversation_id]
+    if sender_type is not None:
+        filters.append(Message.sender_type == sender_type)
+
     count_result = await db.execute(
-        select(func.count()).select_from(Message).where(
-            Message.conversation_id == conversation_id
-        )
+        select(func.count()).select_from(Message).where(*filters)
     )
     total = count_result.scalar_one()
 
     result = await db.execute(
         select(Message)
-        .where(Message.conversation_id == conversation_id)
+        .where(*filters)
         .order_by(Message.created_at.desc())
         .limit(limit)
         .offset(offset)
