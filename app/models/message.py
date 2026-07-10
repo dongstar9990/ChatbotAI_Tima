@@ -14,7 +14,7 @@ class Message(Base):
     )
     external_message_id = Column(String(255), nullable=False)
     sender_type = Column(String(50), nullable=False)
-    sender_id = Column(BigInteger, nullable=False)
+    sender_id = Column(String(50), nullable=False)
     message_type = Column(String(50), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

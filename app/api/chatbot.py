@@ -43,12 +43,58 @@ async def chat(req: ChatMessageRequest, db: AsyncSession = Depends(get_db)):
     return ChatMessageResponse(
         conversation_id=convo.id,
         reply=reply_text,
-        messages=[
-            {
-                "sender_type": m.sender_type,
-                "content": m.content,
-                "created_at": m.created_at.isoformat(),
-            }
-            for m in history
-        ],
+        # messages=[
+        #     {
+        #         "sender_type": m.sender_type,
+        #         "content": m.content,
+        #         "created_at": m.created_at.isoformat(),
+        #     }
+        #     for m in history
+        # ],
     )
+#
+# @router.post("/text-only", response_model=MessageRead, status_code=201)
+# async def chat_text_only(req: ChatMessageRequest, db: AsyncSession = Depends(get_db)):
+#     """
+#     Chỉ lưu tin nhắn text của user vào DB, không gọi bot sinh câu trả lời.
+#     Dùng cho các trường hợp: log tin nhắn, webhook nhận tin không cần auto-reply, v.v.
+#     """
+#     if not req.conversation_id and not req.external_conversation_id:
+#         raise HTTPException(
+#             status_code=400,
+#             detail="Cần cung cấp conversation_id hoặc external_conversation_id",
+#         )
+#
+#     try:
+#         # 1. Resolve conversation (lấy sẵn hoặc tạo mới nếu dùng external_conversation_id)
+#         if req.conversation_id:
+#             convo = await get_conversation(db, req.conversation_id)
+#             if not convo:
+#                 raise ValueError("Conversation not found")
+#         else:
+#             convo = await upsert_conversation(
+#                 db,
+#                 ConversationCreate(
+#                     external_conversation_id=req.external_conversation_id
+#                 ),
+#             )
+#
+#         # 2. Lưu tin nhắn user, không gọi bot
+#         user_msg = await upsert_message(
+#             db,
+#             MessageCreate(
+#                 conversation_id=convo.id,
+#                 external_message_id=req.external_message_id,
+#                 sender_type="customer",
+#                 sender_id=req.sender_id,
+#                 message_type="text",
+#                 content=req.content,
+#             ),
+#         )
+#     except ValueError as e:
+#         raise HTTPException(status_code=404, detail=str(e))
+#     except Exception as e:
+#         logger.exception("Lỗi lưu tin nhắn text-only")
+#         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+#
+#     return user_msg

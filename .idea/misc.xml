@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="cv-end-to-end-chatbotai" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="cv-end-to-end-chatbotai" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="condaChatbotAI_Tima" project-jdk-type="Python SDK" />
 </project>

@@ -1,6 +1,5 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.conversation import Conversation
 from app.schemas.conversation import ConversationCreate, ConversationUpdate
 
@@ -38,6 +37,7 @@ async def upsert_conversation(
 
     convo = Conversation(
         external_conversation_id=data.external_conversation_id,
+        channel_id=data.channel_id,
         status=data.status,
     )
     db.add(convo)
@@ -63,19 +63,30 @@ async def update_conversation(
 
 
 async def list_conversations(
-    db: AsyncSession, limit: int = 20, offset: int = 0
+    db: AsyncSession,
+    limit: int = 20,
+    offset: int = 0,
+    channel_id: int | None = None,
 ) -> tuple[int, list[Conversation]]:
-    total_result = await db.execute(select(Conversation))
-    total = len(total_result.scalars().all())
+    filters = []
+    if channel_id is not None:
+        filters.append(Conversation.channel_id == channel_id)
+
+    count_result = await db.execute(
+        select(func.count()).select_from(Conversation).where(*filters)
+    )
+    total = count_result.scalar_one()
 
     result = await db.execute(
         select(Conversation)
+        .where(*filters)
         .order_by(Conversation.created_at.desc())
         .limit(limit)
         .offset(offset)
     )
     items = result.scalars().all()
     return total, items
+
 
 async def delete_conversation(db: AsyncSession, conversation_id: int) -> bool:
     convo = await get_conversation(db, conversation_id)

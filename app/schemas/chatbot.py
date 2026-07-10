@@ -13,4 +13,4 @@ class ChatMessageRequest(BaseModel):
 class ChatMessageResponse(BaseModel):
     conversation_id: int
     reply: str
-    messages: list[dict]
+    # messages: list[dict]
