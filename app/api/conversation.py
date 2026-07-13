@@ -29,11 +29,11 @@ async def create_conversation(
 async def list_conversations_route(
     limit: int = Query(20, le=100),
     offset: int = Query(0, ge=0),
-    channel_id: int | None = Query(None),
+    channel_account_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     total, items = await list_conversations(
-        db, limit=limit, offset=offset, channel_id=channel_id
+        db, limit=limit, offset=offset, channel_account_id=channel_account_id
     )
     return ConversationListResponse(total=total, items=items)
 
