@@ -37,7 +37,7 @@ async def upsert_conversation(
 
     convo = Conversation(
         external_conversation_id=data.external_conversation_id,
-        channel_id=data.channel_id,
+        channel_account_id=data.channel_account_id,
         status=data.status,
     )
     db.add(convo)
@@ -66,11 +66,11 @@ async def list_conversations(
     db: AsyncSession,
     limit: int = 20,
     offset: int = 0,
-    channel_id: int | None = None,
+    channel_account_id: int | None = None,
 ) -> tuple[int, list[Conversation]]:
     filters = []
-    if channel_id is not None:
-        filters.append(Conversation.channel_id == channel_id)
+    if channel_account_id is not None:
+        filters.append(Conversation.channel_account_id == channel_account_id)
 
     count_result = await db.execute(
         select(func.count()).select_from(Conversation).where(*filters)

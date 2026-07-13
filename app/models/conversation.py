@@ -9,7 +9,7 @@ class Conversation(Base):
     __tablename__ = "conversation"
 
     id = Column(Integer, primary_key=True, index=True)
-    channel_id = Column(
+    channel_account_id = Column(
         Integer,
         ForeignKey("channel_accounts.id", ondelete="SET NULL"),
         nullable=True,
