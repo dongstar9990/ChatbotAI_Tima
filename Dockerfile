@@ -9,8 +9,10 @@ WORKDIR /app
 
 # Cài các gói hệ thống cần thiết (build psycopg2/asyncpg, ssl...)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
+    build-essential \
     libpq-dev \
+    python3-dev \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # ---- Cài dependencies trước để tận dụng docker layer cache ----
