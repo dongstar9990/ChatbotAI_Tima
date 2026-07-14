@@ -162,7 +162,7 @@ async def handle_user_message(
     db: AsyncSession,
     conversation_id: int | None,
     external_conversation_id: str | None,
-    sender_id: int,
+    sender_id: str,
     content: str,
     external_message_id: str | None = None,
 ):
@@ -225,7 +225,7 @@ async def handle_user_message(
             conversation_id=convo.id,
             external_message_id=bot_external_id,
             sender_type="bot",
-            sender_id=0,
+            sender_id="0",
             message_type="text",
             content=reply_text,
             status=1
