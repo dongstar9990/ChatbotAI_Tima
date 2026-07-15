@@ -6,7 +6,7 @@ class ChatMessageRequest(BaseModel):
     conversation_id: Optional[int] = None
     external_conversation_id: Optional[str] = Field(None, max_length=255)
     external_message_id: Optional[str] = Field(None, max_length=255)
-    sender_id: int
+    sender_id: str
     content: str
 
 
