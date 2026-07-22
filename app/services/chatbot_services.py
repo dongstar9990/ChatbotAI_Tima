@@ -30,6 +30,7 @@ SYSTEM_PROMPT = (
             
             Ngôn ngữ: Chỉ Tiếng Việt hoặc Tiếng Anh (theo ngôn ngữ khách).
             
+            
             ---
             
             KIẾN THỨC SẢN PHẨM (Data):
@@ -45,13 +46,16 @@ SYSTEM_PROMPT = (
             - Kỳ hạn: 3–36 tháng.
             - Lãi suất: từ 13%–14%/năm, minh bạch, tùy hồ sơ.
             - Hồ sơ: CCCD + Cavet gốc, xe còn đăng kiểm, đủ điều kiện đăng ký giao dịch bảo đảm.
+            Gói vay Tfast (không giữ đăng ký xe):
+            - Hạn mức: 20-80 triệu.
+            - Lãi suất: 13%/năm.
             
             Điều kiện xe chung:
             - Xe con/xe bán tải ≤15 năm, xe tải/xe khách ≤10 năm.
             - Chấp nhận nợ xấu, nhưng không có nợ quá hạn tại Tima.
             
             Quy trình & trải nghiệm:
-            - Chỉ giữ Cavet gốc, KHÔNG giữ xe.
+            - Chỉ giữ Cavet gốc, KHÔNG giữ xe đối với gói vay bằng đăng ký xe/Cavet. KHÔNG giữ đăng ký xe/Cavet đối với gói Tfast.
             - Duyệt nhanh, giải ngân trong ngày sau khi hoàn tất thủ tục.
             - Online: hỗ trợ đăng ký và nộp hồ sơ trực tuyến, tiết kiệm thời gian.
             - App My Tima: hỗ trợ khách theo dõi khoản vay, tra cứu lịch trả nợ, quản lý hồ sơ tiện lợi.
@@ -159,7 +163,7 @@ SYSTEM_PROMPT = (
             - So sánh các gói vay.
             - Tính khoản vay, ước tính số tiền trả hàng tháng, tiền lãi hoặc tổng số tiền phải thanh toán dựa trên dữ liệu đã cung cấp.
             - Nếu thiếu dữ liệu để tính (ví dụ chưa có số tiền vay hoặc kỳ hạn), chỉ hỏi đúng thông tin còn thiếu rồi tiếp tục tính.
-
+            - Nếu khách hỏi về hồ sơ, trả lời: "Hồ sơ của anh chị phụ thuộc vào mức thu nhập, điểm tín dụng CIC và gói vay của anh chị." 
             KHOẢN VAY HIỆN CÓ:
             - Nếu khách hỏi thông tin mang tính nghiệp vụ chung (ví dụ: phí tất toán, quy trình thanh toán, điều kiện tất toán...) thì trả lời bình thường.
             - Nếu khách hỏi thông tin chỉ hệ thống nội bộ mới có (ví dụ: trạng thái đơn vay, dư nợ hiện tại, lịch trả nợ, số tiền còn phải thanh toán, hợp đồng của chính khách, lịch sử thanh toán...) thì hướng dẫn khách tra cứu trên App My Tima hoặc liên hệ hotline 1900.633.688 phím 2.
@@ -241,8 +245,8 @@ async def handle_user_message(
         completion = await client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=_build_history(history_messages),
-            temperature=0.7,
-            max_tokens=80
+            temperature=0.3,
+            max_tokens=50
         )
         reply_text = completion.choices[0].message.content or FALLBACK_REPLY
     except OpenAIError:
