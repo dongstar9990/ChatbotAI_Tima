@@ -5,6 +5,7 @@ from typing import Optional
 class ChatMessageRequest(BaseModel):
     conversation_id: Optional[int] = None
     external_conversation_id: Optional[str] = Field(None, max_length=255)
+    channel_account_id: Optional[int] = None
     external_message_id: Optional[str] = Field(None, max_length=255)
     sender_id: str
     content: str

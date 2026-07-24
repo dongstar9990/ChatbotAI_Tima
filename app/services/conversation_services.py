@@ -12,11 +12,19 @@ async def get_conversation(db: AsyncSession, conversation_id: int) -> Conversati
 
 
 async def get_conversation_by_external_id(
-    db: AsyncSession, external_conversation_id: str
+    db: AsyncSession,
+    external_conversation_id: str,
+    channel_account_id: int | None = None,
 ) -> Conversation | None:
+    """Find a conversation within the channel account that owns it.
+
+    The same external conversation ID can exist on different pages/OAs, so
+    the channel account is part of the lookup key.
+    """
     result = await db.execute(
         select(Conversation).where(
-            Conversation.external_conversation_id == external_conversation_id
+            Conversation.external_conversation_id == external_conversation_id,
+            Conversation.channel_account_id == channel_account_id,
         )
     )
     return result.scalar_one_or_none()
@@ -26,11 +34,13 @@ async def upsert_conversation(
     db: AsyncSession, data: ConversationCreate
 ) -> Conversation:
     """
-    Nếu external_conversation_id đã tồn tại -> trả về conversation cũ.
-    Nếu chưa -> tạo mới.
+    Đối chiếu theo cặp external_conversation_id + channel_account_id.
+    Nếu cặp này đã tồn tại -> trả về conversation cũ; nếu chưa -> tạo mới.
     """
     existing = await get_conversation_by_external_id(
-        db, data.external_conversation_id
+        db=db,
+        external_conversation_id=data.external_conversation_id,
+        channel_account_id=data.channel_account_id,
     )
     if existing:
         return existing

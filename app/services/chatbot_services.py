@@ -175,6 +175,7 @@ async def handle_user_message(
     sender_id: str,
     content: str,
     external_message_id: str | None = None,
+    channel_account_id: int | None = None,
 ):
     # 1. Lấy hoặc tạo conversation
     if conversation_id:
@@ -190,6 +191,7 @@ async def handle_user_message(
             db,
             ConversationCreate(
                 external_conversation_id=external_conversation_id,
+                channel_account_id=channel_account_id,
                 status=1,
             ),
         )

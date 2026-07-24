@@ -26,6 +26,7 @@ async def chat(req: ChatMessageRequest, db: AsyncSession = Depends(get_db)):
             db,
             conversation_id=req.conversation_id,
             external_conversation_id=req.external_conversation_id,
+            channel_account_id=req.channel_account_id,
             sender_id=req.sender_id,
             content=req.content,
             external_message_id=req.external_message_id,
