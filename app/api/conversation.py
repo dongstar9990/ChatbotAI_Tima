@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
+from app.schemas.message import MessageCreate, MessageRead, SendMessageRequest
+from app.services.facebook_services import FacebookSendError, send_facebook_text
+from app.services.message_services import upsert_message
+from app.services.channel_accounts_services import get_channel_account
 from app.schemas.conversation import (
     ConversationCreate,
     ConversationUpdate,
@@ -68,3 +72,48 @@ async def delete_conversation_route(
     if not deleted:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return {"detail": "Deleted successfully"}
+
+
+@router.post("/{conversation_id}/send", response_model=MessageRead, status_code=201)
+async def send_message_to_facebook(
+    conversation_id: int,
+    payload: SendMessageRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Gửi text tới người dùng Messenger của conversation này."""
+    convo = await get_conversation(db, conversation_id)
+    if not convo:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    if not convo.external_conversation_id:
+        raise HTTPException(status_code=400, detail="Conversation thiếu PSID người nhận")
+    if not convo.channel_account_id:
+        raise HTTPException(status_code=400, detail="Conversation chưa có channel account")
+
+    account = await get_channel_account(db, convo.channel_account_id)
+    if not account or account.status != 1:
+        raise HTTPException(status_code=400, detail="Facebook channel account không hợp lệ")
+    if not account.external_page_id or not account.access_token:
+        raise HTTPException(status_code=500, detail="Thiếu external_page_id hoặc access_token")
+
+    try:
+        external_message_id = await send_facebook_text(
+            page_id=account.external_page_id,
+            access_token=account.access_token,
+            recipient_id=convo.external_conversation_id,
+            text=payload.content,
+        )
+    except FacebookSendError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    return await upsert_message(
+        db,
+        MessageCreate(
+            conversation_id=conversation_id,
+            external_message_id=external_message_id,
+            sender_type="agent",
+            sender_id=convo.external_conversation_id,
+            message_type="text",
+            content=payload.content,
+            status=1,
+        ),
+    )

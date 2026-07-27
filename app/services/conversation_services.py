@@ -105,3 +105,4 @@ async def delete_conversation(db: AsyncSession, conversation_id: int) -> bool:
     await db.delete(convo)
     await db.commit()
     return True
+

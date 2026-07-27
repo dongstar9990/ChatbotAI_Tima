@@ -9,3 +9,4 @@ python-dotenv==1.0.1
 asyncpg==0.31.0
 greenlet==3.5.3
 openai==2.44.0
+httpx==0.28.1

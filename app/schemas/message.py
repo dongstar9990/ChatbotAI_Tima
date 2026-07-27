@@ -35,6 +35,4 @@ class MessageListResponse(BaseModel):
     items: list[MessageRead]
 
 class SendMessageRequest(BaseModel):
-    conversation_id: int
-    content: str
-    sender_id: Optional[str] = Field(None, max_length=50)
+    content: str = Field(..., min_length=1)

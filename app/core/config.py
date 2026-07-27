@@ -15,6 +15,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
+# Facebook Messenger Send API
+FB_GRAPH_API_VERSION = os.getenv("FB_GRAPH_API_VERSION", "v23.0")
+
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 
 # UPLOAD_DIR     = os.getenv("UPLOAD_DIR")
