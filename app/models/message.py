@@ -15,6 +15,9 @@ class Message(Base):
     external_message_id = Column(String(255), nullable=False)
     sender_type = Column(String(50), nullable=False)
     sender_id = Column(String(50), nullable=False)
+    username = Column(String(255), nullable=True)
+    # 1 = tin nhắn đến, 2 = tin nhắn gửi đi
+    message_direction = Column(Integer, nullable=False, default=1, server_default="1")
     message_type = Column(String(50), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

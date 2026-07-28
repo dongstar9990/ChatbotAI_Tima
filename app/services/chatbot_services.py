@@ -205,6 +205,7 @@ async def handle_user_message(
             external_message_id=user_external_id,
             sender_type="customer",
             sender_id=sender_id,
+            message_direction=2,
             message_type="text",
             content=content,
             status=1
@@ -238,6 +239,7 @@ async def handle_user_message(
             external_message_id=bot_external_id,
             sender_type="bot",
             sender_id="0",
+            message_direction=1,
             message_type="text",
             content=reply_text,
             status=1

@@ -8,6 +8,10 @@ class MessageBase(BaseModel):
     external_message_id: Optional[str] = Field(None, max_length=255)
     sender_type: str = Field(..., max_length=50)   # customer / agent / bot
     sender_id: str = Field(..., max_length=50)
+    username: Optional[str] = Field(None, max_length=255)
+    message_direction: int = Field(
+        1, ge=1, le=2, description="1: tin nhắn đến, 2: tin nhắn gửi đi"
+    )
     message_type: str = Field(..., max_length=50)  # text / image / file
     content: str
     status: Optional[int] = 1
@@ -36,3 +40,4 @@ class MessageListResponse(BaseModel):
 
 class SendMessageRequest(BaseModel):
     content: str = Field(..., min_length=1)
+    username: str = Field(..., min_length=1, max_length=255)

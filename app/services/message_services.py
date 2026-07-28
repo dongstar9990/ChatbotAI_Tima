@@ -1,8 +1,28 @@
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.message import Message
 from app.schemas.message import MessageCreate, MessageUpdate
+
+
+def _get_message_direction(sender_type: str) -> int:
+    """agent/bot = tin gửi đi (1), customer = tin đến (2)."""
+    return 1 if sender_type in {"agent", "bot"} else 2
+
+
+async def _sync_message_directions(db: AsyncSession) -> None:
+    """Đồng bộ message_direction của các message đã tồn tại theo sender_type."""
+    await db.execute(
+        update(Message)
+        .where(Message.sender_type.in_(["agent", "bot"]))
+        .values(message_direction=1)
+    )
+    await db.execute(
+        update(Message)
+        .where(Message.sender_type == "customer")
+        .values(message_direction=2)
+    )
+    await db.commit()
 
 async def get_message(db: AsyncSession, message_id: int) -> Message | None:
     result = await db.execute(select(Message).where(Message.id == message_id))
@@ -59,6 +79,8 @@ async def upsert_message(db: AsyncSession, data: MessageCreate) -> Message:
     if existing:
         existing.content = data.content
         existing.status = data.status
+        existing.username = data.username
+        existing.message_direction = _get_message_direction(data.sender_type)
         await db.commit()
         await db.refresh(existing)
         return existing
@@ -68,6 +90,8 @@ async def upsert_message(db: AsyncSession, data: MessageCreate) -> Message:
         external_message_id=data.external_message_id,
         sender_type=data.sender_type,
         sender_id=data.sender_id,
+        username=data.username,
+        message_direction=_get_message_direction(data.sender_type),
         message_type=data.message_type,
         content=data.content,
         status=data.status,
@@ -92,6 +116,8 @@ async def list_messages(
     filters = [Message.conversation_id == conversation_id]
     if sender_type is not None:
         filters.append(Message.sender_type == sender_type)
+
+    await _sync_message_directions(db)
 
     count_result = await db.execute(
         select(func.count()).select_from(Message).where(*filters)
