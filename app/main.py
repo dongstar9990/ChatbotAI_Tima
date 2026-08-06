@@ -4,7 +4,6 @@ from fastapi import FastAPI
 from app.core.db import Base, engine
 from app.api import api_router
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Tạo bảng khi app khởi động (chỉ dùng cho dev/demo)
