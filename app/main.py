@@ -3,8 +3,6 @@ from fastapi import FastAPI
 
 from app.core.db import Base, engine
 from app.api import api_router
-import logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

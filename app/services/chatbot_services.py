@@ -194,8 +194,7 @@ VAI TRÒ & TÔN CHỈ:
 
         ---
 
-        KẾT TH
-        ÚC:
+        KẾT THÚC:
         Nếu khách nhắn "ok/cảm ơn/được" sau khi đã đủ thông tin →
         "Dạ em cảm ơn anh chị đã dành thời gian cho tima. Nếu còn thắc mắc gì thì anh chị cứ nhắn cho em nhé ạ."	
     """
