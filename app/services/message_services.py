@@ -105,7 +105,7 @@ async def upsert_message(db: AsyncSession, data: MessageCreate) -> Message:
 async def list_messages(
     db: AsyncSession,
     conversation_id: int,
-    limit: int = 20,
+    limit: int = 100,
     offset: int = 0,
     sender_type: str | None = None,
 ) -> tuple[int, list[Message]]:

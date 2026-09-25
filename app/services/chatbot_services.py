@@ -250,7 +250,7 @@ async def handle_user_message(
 
     # 3. Lấy lịch sử hội thoại (20 tin gần nhất), đảo lại thành cũ -> mới
     _, history_messages = await list_messages(
-        db, conversation_id=convo.id, limit=20, offset=0
+        db, conversation_id=convo.id, limit=100, offset=0
     )
     history_messages = list(reversed(history_messages))
 
