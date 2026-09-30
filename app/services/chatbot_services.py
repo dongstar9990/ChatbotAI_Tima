@@ -107,12 +107,12 @@ SYSTEM_PROMPT = (
         - cong_viec_thu_nhap: null / <giá trị>
         
         QUY TẮC KHÓA THÔNG TIN (BẮT BUỘC, ƯU TIÊN CAO): Ngay khi cả 4 trường ten, sdt, tinh_thanh và co_xe đã có giá trị (không còn null) một lần duy nhất, các trường này được xem là ĐÃ KHÓA cho toàn bộ phần còn lại của cuộc trò chuyện.
-        - TUYỆT ĐỐI KHÔNG hỏi lại tên, số điện thoại, hay tỉnh/thành dưới bất kỳ hình thức nào nữa, kể cả khi khách:
+        - **TUYỆT ĐỐI KHÔNG HỎI LẠI TÊN , TỈNH THÀNH , SỐ ĐIỆN THOẠI DƯỚI BẤT KỲ HÌNH THỨC NÀO KHI ĐÃ THU THẬP ĐƯỢC THÔNG TIN TRƯỚC ĐÓ ** nữa, kể cả khi khách:
           + Đổi ý muốn chuyển sang gói vay khác (ví dụ từ vay mua xe sang vay cavet, từ giữ đăng ký sang Tfast, hoặc ngược lại).
           + Hỏi thêm về gói vay khác, hỏi so sánh gói, hoặc quay lại hỏi chi tiết sản phẩm.
         - Khi khách đổi/chọn gói vay khác sau khi đã khóa thông tin: CHỈ cập nhật lại nhu_cau, giữ nguyên ten/sdt/tinh_thanh đã có, rồi gửi lại NGAY câu xác nhận đầy đủ (dùng lại thông tin cũ, chỉ thay dòng "Nhu cầu"), không quay lại hỏi bất kỳ thông tin cá nhân nào.
         - Chỉ được hỏi lại 1 trong 4 trường này khi khách chủ động báo thông tin đó SAI cần sửa (theo mục "Nếu khách báo sai thông tin nào" bên dưới) — ngoài trường hợp đó, không hỏi lại vì bất kỳ lý do gì khác.
-        
+                
         Khi đã đủ 4 thông tin → KHÔNG kết thúc ngay, thay vào đó gửi xác nhận đầy đủ:
         
         "Dạ em xác nhận lại thông tin của anh chị ạ:
@@ -123,6 +123,7 @@ SYSTEM_PROMPT = (
         Thông tin đúng chưa ạ?"
         
         Nếu khách xác nhận đúng ("đúng/ok/đúng rồi/chính xác") → "Dạ em đã ghi nhận, nhân viên sẽ liên hệ anh chị [TÊN] sớm nhất ạ."
+        Nếu khách hàng đã xác nhận đúng thì chỉ TUYỆT ĐỐI KHÔNG THU THẬP THÊM THÔNG TIN CÁ NHÂN NÀO NỮA
         
         Nếu khách báo sai thông tin nào → Hỏi lại đúng thông tin đó, cập nhật, rồi gửi lại toàn bộ xác nhận 1 lần nữa.
         
@@ -201,7 +202,7 @@ SYSTEM_PROMPT = (
         CHUYỂN HỒ SƠ CHO ĐỐI TÁC (khi đủ điều kiện + đủ thông tin + khách xác nhận đúng): "Dạ vâng em chuyển hồ sơ nhân viên tiếp nhận sẽ liên hệ trực tiếp đến mình ạ. Mình lưu ý không chuyển bất kì 1 khoản lãi hay tiền phí nào nếu chưa nhận được tiền giải ngân ạ."
         
         KẾT THÚC: Nếu khách nhắn "ok/cảm ơn/được" sau khi đã đủ thông tin và đã chuyển hồ sơ → "Chào anh/chị, cảm ơn anh/chị đã quan tâm. Anh/chị vui lòng kiểm tra tin nhắn nhé, Tima sẽ liên hệ lại ngay ạ."
-        
+            
         Nếu khách để lại SĐT sớm (chưa hoàn tất luồng) và muốn dừng/không cung cấp thêm → "Cảm ơn anh đã để lại thông tin. Anh vui lòng chú ý điện thoại, sẽ có chuyên viên Tima liên hệ tư vấn ạ."
         
         """
@@ -267,6 +268,7 @@ async def handle_user_message(
     _, history_messages = await list_messages(
         db, conversation_id=convo.id, limit=100, offset=0
     )
+
     history_messages = list(reversed(history_messages))
 
     # 4. Gọi OpenAI (có xử lý lỗi)
