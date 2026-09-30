@@ -211,14 +211,100 @@ SYSTEM_PROMPT = (
 FALLBACK_REPLY = "Xin lỗi, hiện tại tôi chưa thể trả lời. Vui lòng thử lại sau."
 
 
-def _build_history(messages: List[Message]) -> List[dict]:
+import re
+from typing import Dict, List, Optional
+
+
+# Regex dò từng field trong khối xác nhận bot đã gửi, ví dụ:
+# "- Họ tên: Đông"
+# "- Số điện thoại: 0987654321"
+# "- Khu vực: Hà Nội"
+# "- Nhu cầu: vay Tfast không giữ đăng ký xe"
+#
+# Dùng .search() theo từng dòng (không có flag MULTILINE/DOTALL) nên "." tự
+# dừng ở cuối dòng -> không cần lo ăn lấn sang field kế tiếp.
+_FIELD_PATTERNS = {
+    "ten": re.compile(r"-?\s*Họ tên:\s*(.+)", re.IGNORECASE),
+    "sdt": re.compile(r"-?\s*Số điện thoại:\s*(.+)", re.IGNORECASE),
+    "khu_vuc": re.compile(r"-?\s*Khu vực:\s*(.+)", re.IGNORECASE),
+    "nhu_cau": re.compile(r"-?\s*Nhu cầu:\s*(.+)", re.IGNORECASE),
+}
+
+_REQUIRED_FIELDS = ("ten", "sdt", "khu_vuc", "nhu_cau")
+
+
+def _extract_locked_info(messages: List["Message"]) -> Optional[Dict[str, str]]:
+    """
+    Quét toàn bộ message của assistant, tìm khối xác nhận đầy đủ 4 thông tin
+    (Họ tên / Số điện thoại / Khu vực / Nhu cầu). Nếu có NHIỀU khối (vì khách
+    đổi gói vay giữa chừng -> bot gửi lại xác nhận mới), LẤY KHỐI GẦN NHẤT
+    (mới nhất theo thời gian) vì nó phản ánh nhu_cau cập nhật mới nhất, còn
+    ten/sdt/khu_vuc thường giữ nguyên qua các lần xác nhận.
+
+    Trả về dict {"ten", "sdt", "khu_vuc", "nhu_cau"} hoặc None nếu chưa từng
+    có khối xác nhận đầy đủ nào trong lịch sử.
+    """
+    locked_info = None
+
+    for m in messages:
+        if m.sender_type == "customer":
+            continue  # chỉ quét message của bot/assistant
+
+        content = m.content or ""
+        if "Họ tên:" not in content or "Số điện thoại:" not in content:
+            continue  # bỏ qua nhanh nếu chắc chắn không phải khối xác nhận
+
+        extracted = {}
+        for key, pattern in _FIELD_PATTERNS.items():
+            match = pattern.search(content)
+            if match:
+                # bỏ dấu câu/khoảng trắng thừa ở cuối, vd "Hà Nội." -> "Hà Nội"
+                extracted[key] = match.group(1).strip().rstrip(".:")
+
+        if all(key in extracted and extracted[key] for key in _REQUIRED_FIELDS):
+            locked_info = extracted  # ghi đè -> luôn giữ khối MỚI NHẤT tìm thấy
+
+    return locked_info
+
+
+def _format_lock_note(locked_info: Dict[str, str]) -> str:
+    return (
+        "[TRẠNG THÁI NỘI BỘ - THÔNG TIN KHÁCH HÀNG ĐÃ KHÓA, KHÔNG PHẢI LỜI THOẠI]\n"
+        f"ten: {locked_info['ten']}\n"
+        f"sdt: {locked_info['sdt']}\n"
+        f"tinh_thanh: {locked_info['khu_vuc']}\n"
+        f"nhu_cau (theo lần xác nhận gần nhất): {locked_info['nhu_cau']}\n"
+        "Các trường ten/sdt/tinh_thanh ở trên ĐÃ ĐƯỢC KHÁCH XÁC NHẬN TRƯỚC ĐÓ.\n"
+        "TUYỆT ĐỐI KHÔNG hỏi lại tên, số điện thoại, hoặc khu vực dưới bất kỳ "
+        "hình thức nào — kể cả khi khách chào lại 'alo', hỏi 'tôi tên gì', đổi "
+        "gói vay, hoặc có vẻ như đang bắt đầu một cuộc trò chuyện mới. Nếu khách "
+        "hỏi lại tên/sđt/khu vực của chính họ, TRẢ LỜI TRỰC TIẾP bằng giá trị ở "
+        "trên, không hỏi ngược lại. Chỉ được cập nhật 1 trong các trường này nếu "
+        "khách CHỦ ĐỘNG báo rõ ràng thông tin đó bị sai và cần sửa."
+    )
+
+
+def _build_history(messages: List["Message"]) -> List[dict]:
     """messages phải theo thứ tự cũ -> mới trước khi gọi hàm này."""
     history = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    locked_info = _extract_locked_info(messages)
+
     for m in messages:
         role = "user" if m.sender_type == "customer" else "assistant"
         history.append({"role": role, "content": m.content})
-    return history
 
+    if locked_info:
+        lock_note = {"role": "system", "content": _format_lock_note(locked_info)}
+        # Chèn NGAY TRƯỚC tin nhắn cuối cùng (thường là câu hỏi mới nhất của
+        # khách) thay vì chèn ở đầu, vì model có xu hướng tuân theo instruction
+        # nằm gần cuối context tốt hơn instruction nằm tít trên đầu khi lịch sử
+        # đã dài. Nếu history chỉ có 1 message (chưa có gì để chèn trước), thêm
+        # vào cuối.
+        insert_at = max(len(history) - 1, 1)
+        history.insert(insert_at, lock_note)
+
+    return history
 
 async def handle_user_message(
     db: AsyncSession,
