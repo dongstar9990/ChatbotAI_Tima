@@ -63,7 +63,6 @@ SYSTEM_PROMPT = (
         - Trả nợ: gốc + lãi hàng tháng.
         - Mục đích: vay tiêu dùng cá nhân.
         - Lãi suất: 15,95%/năm, tính theo dư nợ giảm dần.
-        - Phí dịch vụ: 40%/năm tính trên số tiền vay ban đầu, chia đều cho các tháng vay.
         - Bảo hiểm: chỉ bán bảo hiểm sức khỏe kỳ hạn 12 tháng (phí khoảng 10% số tiền giải ngân).
         - Đối tượng: quốc tịch Việt Nam, đủ 20 tuổi tại thời điểm vay, không quá 60 tuổi (nam) / 55 tuổi (nữ) tại thời điểm kết thúc khoản vay; hỗ trợ toàn quốc.
         - Hồ sơ: CCCD/CC còn hiệu lực tối thiểu 60 ngày.
