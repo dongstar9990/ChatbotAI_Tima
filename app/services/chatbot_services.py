@@ -285,10 +285,10 @@ def _format_lock_note(locked_info: Dict[str, str]) -> str:
         f"ten: {locked_info['ten']}\n"
         f"sdt: {locked_info['sdt']}\n"
         f"nhu_cau (theo lần xác nhận gần nhất): {locked_info['nhu_cau']}\n"
-        "Các trường ten/sdt/tinh_thanh ở trên ĐÃ ĐƯỢC KHÁCH XÁC NHẬN TRƯỚC ĐÓ.\n"
+        "Các trường ten/sdt ở trên ĐÃ ĐƯỢC KHÁCH XÁC NHẬN TRƯỚC ĐÓ.\n"
         "TUYỆT ĐỐI KHÔNG hỏi lại tên, số điện thoại dưới bất kỳ "
         "hình thức nào — kể cả khi khách chào lại 'alo', hỏi 'tôi tên gì', đổi "
-        "gói vay, hoặc có vẻ như đang bắt đầu một cuộc trò chuyện mới. TRẢ LỜI TRỰC TIẾP bằng giá trị ở "
+        "gói vay, hoặc có vẻ như đang bắt đầu một cuộc trò chuyện mới. hoặc bất kỳ câu hỏi nào  TRẢ LỜI TRỰC TIẾP bằng giá trị ở "
         "trên, không hỏi ngược lại. Chỉ được cập nhật 1 trong các trường này nếu "
         "khách CHỦ ĐỘNG báo rõ ràng thông tin đó bị sai và cần sửa."
     )
