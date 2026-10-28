@@ -1,16 +1,32 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.schemas.chatbot import ChatMessageRequest, ChatMessageResponse
-from app.services.chatbot_services import handle_user_message
+from app.schemas.chatbot import (
+    ChatMessageRequest,
+    ChatMessageResponse,
+    UnansweredReplyResponse,
+)
+from app.services.chatbot_services import handle_user_message, reply_unanswered_messages
 from app.services.message_services import list_messages
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+
+
+@router.post("/reply-unanswered", response_model=UnansweredReplyResponse)
+async def reply_unanswered(
+    limit: int = Query(100, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await reply_unanswered_messages(db, limit=limit)
+    except Exception as e:
+        logger.exception("Lỗi quét tin nhắn chưa trả lời")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 @router.post("/", response_model=ChatMessageResponse)

@@ -2,6 +2,7 @@ from sqlalchemy import select, func, update, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.message import Message
+from app.models.conversation import Conversation
 from app.schemas.message import MessageCreate, MessageUpdate
 
 
@@ -133,3 +134,38 @@ async def list_messages(
     )
     items = result.scalars().all()
     return total, items
+
+
+async def list_unanswered_conversations(
+    db: AsyncSession, limit: int = 100
+) -> list[Conversation]:
+    """List active conversations whose latest message is from a customer."""
+    latest_messages = (
+        select(
+            Message.conversation_id,
+            Message.sender_type,
+            func.row_number()
+            .over(
+                partition_by=Message.conversation_id,
+                order_by=(Message.created_at.desc(), Message.id.desc()),
+            )
+            .label("row_num"),
+        )
+        .subquery()
+    )
+
+    result = await db.execute(
+        select(Conversation)
+        .join(
+            latest_messages,
+            latest_messages.c.conversation_id == Conversation.id,
+        )
+        .where(
+            Conversation.status == 1,
+            latest_messages.c.row_num == 1,
+            latest_messages.c.sender_type == "customer",
+        )
+        .order_by(Conversation.updated_at.desc(), Conversation.id.desc())
+        .limit(limit)
+    )
+    return list(result.scalars().all())

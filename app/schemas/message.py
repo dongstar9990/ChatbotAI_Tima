@@ -41,3 +41,8 @@ class MessageListResponse(BaseModel):
 class SendMessageRequest(BaseModel):
     content: str = Field(..., min_length=1)
     username: str = Field(..., min_length=1, max_length=255)
+
+
+class ZaloSendMessageRequest(BaseModel):
+    content: str = Field(..., min_length=1, max_length=2000)
+    username: str = Field(..., min_length=1, max_length=255)

@@ -11,6 +11,9 @@ from app.schemas.conversation import ConversationCreate
 from app.schemas.message import MessageCreate
 from app.services.conversation_services import get_conversation, upsert_conversation
 from app.services.message_services import list_messages, upsert_message
+from app.services.message_services import list_unanswered_conversations
+from app.services.channel_accounts_services import get_channel_account
+from app.services.facebook_services import send_facebook_text
 
 logger = logging.getLogger(__name__)
 
@@ -340,6 +343,22 @@ def _build_history(messages: List["Message"]) -> List[dict]:
 
     return history
 
+
+def _is_unanswered(messages: List["Message"]) -> bool:
+    """Return whether the latest message in an old-to-new history is from a customer."""
+    if not messages:
+        return False
+    return messages[-1].sender_type == "customer"
+
+
+async def _generate_reply(messages: List["Message"]) -> str:
+    completion = await client.chat.completions.create(
+        model=OPENAI_MODEL,
+        messages=_build_history(messages),
+        temperature=0.7,
+    )
+    return completion.choices[0].message.content or FALLBACK_REPLY
+
 async def handle_user_message(
     db: AsyncSession,
     conversation_id: int | None,
@@ -393,12 +412,7 @@ async def handle_user_message(
 
     # 4. Gọi OpenAI (có xử lý lỗi)
     try:
-        completion = await client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=_build_history(history_messages),
-            temperature=0.7,
-        )
-        reply_text = completion.choices[0].message.content or FALLBACK_REPLY
+        reply_text = await _generate_reply(history_messages)
     except OpenAIError:
         logger.exception("OpenAI call failed for conversation_id=%s", convo.id)
         reply_text = FALLBACK_REPLY
@@ -420,3 +434,79 @@ async def handle_user_message(
     )
 
     return convo, user_msg, bot_msg, reply_text
+
+
+async def process_unanswered_conversation(
+    db: AsyncSession, convo
+) -> dict[str, str | int]:
+    """Generate, send, and persist one reply for an unanswered conversation."""
+    _, history_messages = await list_messages(
+        db, conversation_id=convo.id, limit=100, offset=0
+    )
+    history_messages = list(reversed(history_messages))
+    if not _is_unanswered(history_messages):
+        return {"status": "skipped", "reason": "conversation đã được trả lời"}
+
+    if not convo.external_conversation_id or not convo.channel_account_id:
+        return {"status": "skipped", "reason": "conversation thiếu cấu hình Facebook"}
+
+    account = await get_channel_account(db, convo.channel_account_id)
+    if not account or account.status != 1:
+        return {"status": "skipped", "reason": "Facebook channel account không hợp lệ"}
+    if not account.external_page_id or not account.access_token:
+        return {"status": "skipped", "reason": "thiếu external_page_id hoặc access_token"}
+
+    reply_text = await _generate_reply(history_messages)
+    external_message_id = await send_facebook_text(
+        page_id=account.external_page_id,
+        access_token=account.access_token,
+        recipient_id=convo.external_conversation_id,
+        text=reply_text,
+    )
+    await upsert_message(
+        db,
+        MessageCreate(
+            conversation_id=convo.id,
+            external_message_id=external_message_id,
+            sender_type="bot",
+            sender_id="0",
+            message_direction=1,
+            message_type="text",
+            content=reply_text,
+            status=1,
+        ),
+    )
+    return {"status": "replied", "reply": reply_text}
+
+
+async def reply_unanswered_messages(
+    db: AsyncSession, limit: int = 100
+) -> dict:
+    conversations = await list_unanswered_conversations(db, limit=limit)
+    result = {
+        "scanned": len(conversations),
+        "replied": 0,
+        "skipped": 0,
+        "failed": 0,
+        "errors": [],
+    }
+
+    for convo in conversations:
+        try:
+            outcome = await process_unanswered_conversation(db, convo)
+        except Exception as exc:
+            logger.exception(
+                "Failed to reply to unanswered conversation_id=%s", convo.id
+            )
+            result["failed"] += 1
+            result["errors"].append(
+                {"conversation_id": convo.id, "reason": str(exc)}
+            )
+            continue
+
+        if outcome["status"] == "replied":
+            result["replied"] += 1
+        else:
+            result["skipped"] += 1
+
+    return result

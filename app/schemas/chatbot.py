@@ -15,3 +15,16 @@ class ChatMessageResponse(BaseModel):
     conversation_id: int
     reply: str
     # messages: list[dict]
+
+
+class UnansweredReplyError(BaseModel):
+    conversation_id: int
+    reason: str
+
+
+class UnansweredReplyResponse(BaseModel):
+    scanned: int
+    replied: int
+    skipped: int
+    failed: int
+    errors: list[UnansweredReplyError] = Field(default_factory=list)

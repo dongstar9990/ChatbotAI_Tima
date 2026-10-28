@@ -6,8 +6,10 @@ from app.schemas.message import (
     MessageRead,
     MessageListResponse,
     SendMessageRequest,
+    ZaloSendMessageRequest,
 )
 from app.services.facebook_services import FacebookSendError, send_facebook_text
+from app.services.zalo_services import ZaloSendError, send_zalo_text
 from app.services.message_services import upsert_message, list_messages
 from app.services.channel_accounts_services import get_channel_account
 from app.schemas.conversation import (
@@ -131,6 +133,55 @@ async def send_message_to_facebook(
             text=payload.content,
         )
     except FacebookSendError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    return await upsert_message(
+        db,
+        MessageCreate(
+            conversation_id=conversation_id,
+            external_message_id=external_message_id,
+            sender_type="agent",
+            sender_id=convo.external_conversation_id,
+            username=payload.username,
+            message_direction=1,
+            message_type="text",
+            content=payload.content,
+            status=1,
+        ),
+    )
+
+
+@router.post("/{conversation_id}/send-zalo", response_model=MessageRead, status_code=201)
+async def send_message_to_zalo(
+    conversation_id: int,
+    payload: ZaloSendMessageRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Gửi text tới người dùng Zalo OA của conversation này."""
+    convo = await get_conversation(db, conversation_id)
+    if not convo:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    if not convo.external_conversation_id:
+        raise HTTPException(status_code=400, detail="Conversation thiếu Zalo user_id người nhận")
+    if not convo.channel_account_id:
+        raise HTTPException(status_code=400, detail="Conversation chưa có channel account")
+
+    account = await get_channel_account(db, convo.channel_account_id)
+    if not account or account.status != 1 or account.name != "zalo":
+        raise HTTPException(
+            status_code=400,
+            detail="Zalo channel account không hợp lệ hoặc chưa được kích hoạt",
+        )
+    if not account.access_token:
+        raise HTTPException(status_code=500, detail="Thiếu Zalo access_token")
+
+    try:
+        external_message_id = await send_zalo_text(
+            access_token=account.access_token,
+            recipient_id=convo.external_conversation_id,
+            text=payload.content,
+        )
+    except ZaloSendError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     return await upsert_message(
