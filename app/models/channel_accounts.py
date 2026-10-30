@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.db import Base
@@ -13,6 +13,7 @@ class ChannelAccount(Base):
     account_name = Column(String(255), nullable=True)
     external_page_id = Column(String(255), nullable=True)
     access_token = Column(String(500), nullable=True)
+    access_token_pancake = Column(Text, nullable=True)
     status = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

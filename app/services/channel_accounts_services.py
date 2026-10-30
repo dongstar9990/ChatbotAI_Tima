@@ -33,6 +33,7 @@ async def create_channel_account(
         account_name=data.account_name,
         external_page_id=data.external_page_id,
         access_token=data.access_token,
+        access_token_pancake=data.access_token_pancake,
         status=data.status,
     )
     db.add(account)

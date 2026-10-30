@@ -12,7 +12,7 @@ class ChannelAccountBase(BaseModel):
 
 
 class ChannelAccountCreate(ChannelAccountBase):
-    pass
+    access_token_pancake: str | None = None
 
 
 class ChannelAccountUpdate(BaseModel):
@@ -21,6 +21,7 @@ class ChannelAccountUpdate(BaseModel):
     account_name: str | None = None
     external_page_id: str | None = None
     access_token: str | None = None
+    access_token_pancake: str | None = None
     status: int | None = None
 
 
