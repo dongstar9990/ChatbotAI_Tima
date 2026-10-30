@@ -16,6 +16,8 @@ class Conversation(Base):
         index=True,
     )
     external_conversation_id = Column(String(255), nullable=True)
+    fullname = Column(String(255), nullable=True)
+    phonenb = Column(String(20), nullable=True)
     status = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

@@ -43,11 +43,22 @@ async def upsert_conversation(
         channel_account_id=data.channel_account_id,
     )
     if existing:
+        changed = False
+        for field in ("fullname", "phonenb"):
+            value = getattr(data, field, None)
+            if value is not None and value != getattr(existing, field, None):
+                setattr(existing, field, value)
+                changed = True
+        if changed:
+            await db.commit()
+            await db.refresh(existing)
         return existing
 
     convo = Conversation(
         external_conversation_id=data.external_conversation_id,
         channel_account_id=data.channel_account_id,
+        fullname=data.fullname,
+        phonenb=data.phonenb,
         status=data.status,
     )
     db.add(convo)

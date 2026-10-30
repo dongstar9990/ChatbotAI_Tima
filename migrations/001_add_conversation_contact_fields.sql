@@ -1,0 +1,3 @@
+ALTER TABLE conversation
+    ADD COLUMN IF NOT EXISTS fullname VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS phonenb VARCHAR(20);

@@ -6,6 +6,8 @@ from datetime import datetime
 class ConversationBase(BaseModel):
     external_conversation_id: str = Field(..., max_length=255)
     channel_account_id: Optional[int] = None
+    fullname: Optional[str] = Field(None, max_length=255)
+    phonenb: Optional[str] = Field(None, max_length=20)
     status: Optional[int] = 1
 
 
@@ -16,6 +18,8 @@ class ConversationCreate(ConversationBase):
 class ConversationUpdate(BaseModel):
     external_conversation_id: Optional[str] = Field(None, max_length=255)
     channel_account_id: Optional[int] = None
+    fullname: Optional[str] = Field(None, max_length=255)
+    phonenb: Optional[str] = Field(None, max_length=20)
     status: Optional[int] = 1
 
 
