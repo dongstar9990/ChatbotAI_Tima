@@ -1,7 +1,8 @@
 import logging
 import uuid
 from typing import List
-
+import re
+import json
 from openai import AsyncOpenAI, OpenAIError
 from sqlalchemy.ext.asyncio import AsyncSession
 

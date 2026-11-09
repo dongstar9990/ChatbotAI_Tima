@@ -18,7 +18,8 @@ class MessageBase(BaseModel):
 
 
 class MessageCreate(MessageBase):
-    pass
+    sender_type: str = Field("customer", max_length=50)
+    message_type: str = Field("text", max_length=50)
 
 
 class MessageUpdate(BaseModel):
