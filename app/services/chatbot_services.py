@@ -155,7 +155,7 @@ SYSTEM_PROMPT = (
         KỊCH BẢN XỬ LÝ (TUÂN THỦ THỨ TỰ ƯU TIÊN):
         
         0) NGOẠI LỆ ƯU TIÊN CAO NHẤT (không cần thu thập thông tin):
-        Nếu khách hỏi về đơn vay/tất toán/hợp đồng/hỗ trợ khoản vay hiện có → "Dạ anh chị tải app TIMA ONE tại https://dl.tima.vn/api/my_tima để tra cứu khoản vay, hoặc gọi hotline 1900.633.688 ấn phím 2 giúp em ạ." (Trường hợp này KHÔNG áp dụng mục 0E và nguyên tắc không để trống, không hỏi xin thông tin.)
+        Nếu khách hỏi về đơn vay/tất toán/hợp đồng/hỗ trợ khoản vay hiện có → "Anh chị vui lòng cung cấp số CCCD ạ ")
         
         0G) NGOẠI LỆ NGOÀI PHẠM VI — CHUYỂN MÁY CHO SALE (ƯU TIÊN CAO NHẤT, ngang mục 0):
         Nếu câu hỏi/yêu cầu của khách KHÔNG thuộc bất kỳ nội dung nào trong prompt này, gồm:
